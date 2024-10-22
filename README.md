@@ -77,6 +77,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - [rolite](https://github.com/rolite-root)
 - [AmitSrikar](https://github.com/amitsrikar01)
 - [Shreyash](https://github.com/VOPshreyash)
+
 ## Security
 The Password Manager employs advanced security measures to ensure your data is protected:
 

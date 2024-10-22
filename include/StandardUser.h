@@ -1,15 +1,16 @@
-#ifndef STANDARDUSER_H
-#define STANDARDUSER_H
+#ifndef STANDARD_USER_H
+#define STANDARD_USER_H
 
 #include "User.h"
+#include <iostream>
 
 class StandardUser : public User {
 public:
-    StandardUser(std::string id, std::string code) : User(id, code) {}
+    StandardUser(const std::string& userID, const std::string& encPassword) : User(userID, encPassword) {}
 
     void accessManager() override {
-        std::cout << "Standard user " << userID << " managing personal data.\n";
+        std::cout << "Standard user-specific access management." << std::endl;
     }
 };
 
-#endif
+#endif // STANDARD_USER_H

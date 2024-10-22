@@ -2,22 +2,19 @@
 #define ADMIN_H
 
 #include "User.h"
+#include <iostream>
 
 class Admin : public User {
 public:
-    Admin(std::string id, std::string code) : User(id, code) {}
-
-    void accessManager() override {
-        std::cout << "Admin " << userID << " managing the system.\n";
-    }
+    Admin(const std::string& userID, const std::string& encPassword) : User(userID, encPassword) {}
 
     void grantAccess(User& user) {
-        if (user.isThreeWeeksInactive()) {
-            std::cout << "Cannot grant access. User " << user.getUserID() << " has been inactive for 3 weeks.\n";
-        } else {
-            std::cout << "Access granted to user " << user.getUserID() << ".\n";
-        }
+        std::cout << "Admin " << this->getUserID() << " is granting access to user: " << user.getUserID() << std::endl;
+    }
+
+    void accessManager() override {
+        std::cout << "Admin-specific access management." << std::endl;
     }
 };
 
-#endif
+#endif // ADMIN_H
