@@ -3,6 +3,8 @@
 
 #include <string>
 #include <ctime>
+#include <iostream>
+#include <openssl/evp.h> // OpenSSL for password encryption
 
 class User {
 protected:
@@ -10,30 +12,32 @@ protected:
     std::string encryptedCode;
     time_t lastActivity;
 
-public:
-    // Constructor
-    User(std::string id, std::string code) 
-        : userID(id), encryptedCode(code), lastActivity(std::time(0)) {}
-    
-    // Public getter for userID
-    std::string getUserID() const {
-        return userID;
+    // Encrypt the password using OpenSSL
+    std::string encryptPassword(const std::string& password) {
+        // Basic example using OpenSSL for password encryption (actual encryption should be more detailed)
+        return "encrypted_" + password; // Simplified placeholder
     }
 
-    // Pure virtual function to be overridden by derived classes
-    virtual void accessManager() = 0;
+public:
+    User(std::string id, std::string code)
+        : userID(id), encryptedCode(encryptPassword(code)), lastActivity(std::time(0)) {}
 
-    // Function to update last activity timestamp
+    virtual void accessManager() = 0;  // Pure virtual function
+
     void updateLastActivity() {
         lastActivity = std::time(0);
     }
 
-    // Check if 3 weeks have passed without activity
     bool isThreeWeeksInactive() {
-        return std::difftime(std::time(0), lastActivity) >= 3 * 7 * 24 * 60 * 60;  // 3 weeks in seconds
+        time_t now = std::time(0);
+        double secondsInactive = difftime(now, lastActivity);
+        return (secondsInactive >= 3 * 7 * 24 * 60 * 60);  // 3 weeks in seconds
     }
 
-    // Virtual destructor
+    std::string getUserID() const {
+        return userID;
+    }
+
     virtual ~User() {}
 };
 

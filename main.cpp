@@ -2,31 +2,29 @@
 #include "S:\\Projects\\PasswordManager\\include\\StandardUser.h"
 #include "S:\\Projects\\PasswordManager\\include\\Action.h"
 #include <iostream>
-#include <memory>
 
 int main() {
     Admin admin("Admin123", "encAdminCode");
     StandardUser standardUser("User456", "encUserCode");
 
     // Actions
-    std::unique_ptr<LoginAction> login = std::make_unique<LoginAction>();
-    std::unique_ptr<AccessPasswordAction> accessPasswords = std::make_unique<AccessPasswordAction>();
+    LoginAction* login = new LoginAction();
+    AccessPasswordAction* accessPasswords = new AccessPasswordAction();
 
     // Execute actions for the Admin
-    try {
-        login->execute(&admin);
-        accessPasswords->execute(&admin);
-    } catch (const std::exception& e) {
-        std::cerr << "Error executing action for Admin: " << e.what() << std::endl;
-    }
+    login->execute(&admin);
+    accessPasswords->execute(&admin);
 
     // Execute actions for the StandardUser
-    try {
-        login->execute(&standardUser);
-        accessPasswords->execute(&standardUser);
-    } catch (const std::exception& e) {
-        std::cerr << "Error executing action for StandardUser: " << e.what() << std::endl;
-    }
+    login->execute(&standardUser);
+    accessPasswords->execute(&standardUser);
+
+    // Grant access to the standard user by admin
+    admin.grantAccess(standardUser);
+
+    // Clean up dynamically allocated memory
+    delete login;
+    delete accessPasswords;
 
     return 0;
 }
