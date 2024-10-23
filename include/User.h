@@ -17,9 +17,8 @@ public:
 
     std::string getUserID() const { return userID; }
 
-    bool isThreeWeeksInactive() {
-        // Placeholder logic to check inactivity (for demonstration)
-        return false;
+    bool authenticate(const std::string& enteredPassword) const {
+        return (encryptedPassword == enteredPassword);
     }
 
     virtual ~User() = default;

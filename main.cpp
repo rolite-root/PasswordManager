@@ -1,83 +1,115 @@
 #include "S:\\Projects\\PasswordManager\\include\\Admin.h"
 #include "S:\\Projects\\PasswordManager\\include\\StandardUser.h"
 #include "S:\\Projects\\PasswordManager\\include\\Action.h"
+#include "S:\\Projects\\PasswordManager\\include\\Utility.h" 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <map>
-#include <openssl/sha.h> // For secure hashing (we can upgrade it by replacing this with AES or bcrypt for real-world security)
+#include <tuple>
+#include <fstream>  
 
-// Convert bytes to hex string (helper function)
-std::string toHex(const unsigned char* bytes, size_t length) {
-    std::string hexStr;
-    for (size_t i = 0; i < length; ++i) {
-        char buffer[3];
-        sprintf(buffer, "%02x", bytes[i]);
-        hexStr.append(buffer);
+// File path to store passwords
+const std::string PASSWORD_FILE = "passwords.csv";
+
+// Helper function to save passwords to a file (CSV format)
+void savePasswordsToFile(const std::map<std::string, std::vector<std::tuple<std::string, std::string, std::string>>>& passwordStorage) {
+    std::ofstream file(PASSWORD_FILE);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file for writing!\n";
+        return;
     }
-    return hexStr;
+
+    for (const auto& user : passwordStorage) {
+        for (const auto& entry : user.second) {
+            file << user.first << "," << std::get<0>(entry) << "," << std::get<1>(entry) << "," << std::get<2>(entry) << "\n";
+        }
+    }
+
+    file.close();
 }
 
-// Secure hashing function using SHA-256
-std::string hashPassword(const std::string& password) {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), password.size(), hash);
-    return toHex(hash, SHA256_DIGEST_LENGTH);
+// Helper function to load passwords from a file (CSV format)
+void loadPasswordsFromFile(std::map<std::string, std::vector<std::tuple<std::string, std::string, std::string>>>& passwordStorage) {
+    std::ifstream file(PASSWORD_FILE);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file for reading, or file does not exist.\n";
+        return;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string userID, website, username, password;
+
+        std::getline(ss, userID, ',');
+        std::getline(ss, website, ',');
+        std::getline(ss, username, ',');
+        std::getline(ss, password, ',');
+
+        passwordStorage[userID].emplace_back(website, username, password);
+    }
+
+    file.close();
 }
 
 int main() {
-    Admin admin("Admin123", "encAdminCode");
-    StandardUser standardUser("User456", "encUserCode");
+    // Initial Setup
+    Admin admin("admin", hashPassword("admin"));
+    StandardUser standardUser("user", hashPassword("user"));
 
-    // Store passwords for each user
-    std::map<std::string, std::vector<std::string>> passwordStorage; // Maps userID to a list of hashed passwords
+    // Store passwords for both Admin and Standard User
+    std::map<std::string, std::vector<std::tuple<std::string, std::string, std::string>>> passwordStorage;
 
-    // Actions (polymorphic behavior)
-    LoginAction* login = new LoginAction();
-    AccessPasswordAction* accessPasswords = new AccessPasswordAction();
+    // Load stored passwords from file at the beginning
+    loadPasswordsFromFile(passwordStorage);
 
-    // Execute actions for Admin
-    login->execute(&admin);
-    accessPasswords->execute(&admin);
+    // Authentication Process
+    std::string enteredPassword;
+    std::cout << "Enter Admin or User Password to login: ";
+    std::cin >> enteredPassword;
 
-    // Execute actions for Standard User
-    login->execute(&standardUser);
-    accessPasswords->execute(&standardUser);
+    if (admin.authenticate(hashPassword(enteredPassword))) {
+        std::cout << "Admin logged in successfully.\n";
+        int choice;
+        while (true) {
+            std::cout << "1. Add Password\n2. Delete Password\n3. Modify Password\n4. Display Passwords\n5. Logout\n";
+            std::cin >> choice;
 
-    // Grant access to the standard user by admin (optional)
-    admin.grantAccess(standardUser);
-
-    // User input for password storage
-    std::string password;
-    std::cout << "Enter a password to store: ";
-    std::cin >> password;
-
-    // Securely hash the password before storage
-    std::string hashedPassword = hashPassword(password);
-
-    // Store password based on the user selection
-    std::string currentUserID;
-    std::cout << "Are you storing the password for the Admin or StandardUser? (Type 'admin' or 'user'): ";
-    std::cin >> currentUserID;
-
-    if (currentUserID == "admin") {
-        passwordStorage[admin.getUserID()].push_back(hashedPassword);
-    } else if (currentUserID == "user") {
-        passwordStorage[standardUser.getUserID()].push_back(hashedPassword);
+            if (choice == 1) {
+                std::string website, username, password;
+                std::cout << "Enter website: ";
+                std::cin >> website;
+                std::cout << "Enter username: ";
+                std::cin >> username;
+                std::cout << "Enter password: ";
+                std::cin >> password;
+                admin.addPassword(passwordStorage, website, username, password);
+            } else if (choice == 2) {
+                admin.deletePassword(passwordStorage);
+            } else if (choice == 3) {
+                std::string newPassword;
+                std::cout << "Enter new password: ";
+                std::cin >> newPassword;
+                admin.modifyPassword(passwordStorage, newPassword);
+            } else if (choice == 4) {
+                admin.displayPasswords(passwordStorage);
+            } else if (choice == 5) {
+                // Save passwords to file before logging out
+                savePasswordsToFile(passwordStorage);
+                std::cout << "Passwords saved. Admin logged out.\n";
+                break;
+            } else {
+                std::cout << "Invalid choice.\n";
+            }
+        }
+    } else if (standardUser.authenticate(hashPassword(enteredPassword))) {
+        std::cout << "Standard User logged in successfully.\n";
+        standardUser.displayPasswords(passwordStorage); // Display encrypted passwords for Standard User
     } else {
-        std::cerr << "Invalid user selection." << std::endl;
-        return 1;
+        std::cout << "Authentication failed.\n";
     }
-
-    // Display stored encrypted passwords for the selected user
-    std::cout << "\nStored encrypted (hashed) passwords for " << currentUserID << ":" << std::endl;
-    for (const auto& storedPassword : passwordStorage[currentUserID == "admin" ? admin.getUserID() : standardUser.getUserID()]) {
-        std::cout << storedPassword << std::endl;
-    }
-
-    // Clean up
-    delete login;
-    delete accessPasswords;
 
     return 0;
 }
